@@ -3,9 +3,8 @@ from flask import Flask, jsonify, request
 from flask_restful import Api, Resource, reqparse
 from flasgger import Swagger
 from playhouse.shortcuts import model_to_dict
-from typing import List, Dict
 
-app = Flask(__name__, static_url_path="/localhost:1810")
+app = Flask(__name__)
 api = Api(app)
 swagger = Swagger(app)
 
@@ -25,7 +24,8 @@ class HelloWorld(Resource):
       200:
         description: A greeting message
     """
-    def get(self):
+    @staticmethod
+    def get():
         parser = reqparse.RequestParser()
         parser.add_argument('name', type=str, required=True, help='Name of the person to greet')
         args = parser.parse_args()
@@ -35,79 +35,71 @@ class HelloWorld(Resource):
 api.add_resource(HelloWorld, '/hello')
 
 # Get-Calls
-@app.route('/employees/<int:id>', methods=['GET'])
-def get_employee_by_id(id):
-    try:
-        employee = Employee.get(Employee.id == id)
-        return jsonify(model_to_dict(employee))
-    except Employee.DoesNotExist:
-        return jsonify({'error': 'Employee not found'}), 404
-
-@app.route('/departments/<int:id>', methods=['GET'])
-def get_department_by_id(id):
-    try:
-        department = Department.get(Department.id == id)
-        return jsonify(model_to_dict(department))
-    except Department.DoesNotExist:
-        return jsonify({'error': 'Department not found'}), 404
-
-@app.route('/departments/<int:id>', methods=['GET'])
-def get_request_by_id(id):
-    try:
-        leaverequest = Leaverequest.get(Leaverequest.id == id)
-        return jsonify(model_to_dict(leaverequest))
-    except Department.DoesNotExist:
-        return jsonify({'error': 'Department not found'}), 404
-
 @app.route('/employees/all', methods=['GET'])
 def get_all_employees():
     try:
         employees = [model_to_dict(employee) for employee in Employee.select()]
         return jsonify(employees)
     except Employee.DoesNotExist:
-        return jsonify({'error': 'Employee not found'})
+        return jsonify({'error': 'Employees not found'}), 404
+
+@app.route('/departments/<int:id>/employees', methods=['GET'])
+def get_all_employees_of_dept(id):
+    try:
+        employees_of_dept = [model_to_dict(employee) for employee in Employee.select().where(Employee.department_id == id)]
+        return jsonify(employees_of_dept)
+    except Employee.DoesNotExist:
+        return jsonify({'error': 'Employees not found'}), 404
 
 @app.route('/departments/all', methods=['GET'])
 def get_all_departments():
     try:
         departments = [model_to_dict(department) for department in Department.select()]
         return jsonify(departments)
-    except Employee.DoesNotExist:
-        return jsonify({'error': 'Employee not found'})
+    except Department.DoesNotExist:
+        return jsonify({'error': 'Departments not found'}), 404
 
 @app.route('/leaverequests/all', methods=['GET'])
 def get_all_leaverequests():
     try:
         leaverequests = [model_to_dict(leaverequest) for leaverequest in Leaverequest.select()]
         return jsonify(leaverequests)
-    except Employee.DoesNotExist:
-        return jsonify({'error': 'Employee not found'})
+    except Leaverequest.DoesNotExist:
+        return jsonify({'error': 'Leaverequests not found'}), 404
+
+@app.route('/leaverequests/employee/<int:id>', methods=['GET'])
+def get_all_requests_of_employee(id):
+    try:
+        requests_of_employeeid = [model_to_dict(leaverequest) for leaverequest in Leaverequest.select().where(Leaverequest.employee_id == id)]
+        return jsonify(requests_of_employeeid)
+    except:
+        return jsonify(Exception)
 
 # POST calls
-@app.route('/employees', methods=['POST'])
+@app.route('/employees/add/', methods=['POST'])
 def create_employee():
     data = request.json
     employee = Employee.create(**data)
     return jsonify(model_to_dict(employee)), 201
 
-@app.route('/departments', methods=['POST'])
+@app.route('/departments/add/', methods=['POST'])
 def create_department():
     data = request.json
     department = Department.create(**data)
     return jsonify(model_to_dict(department)), 201
 
-@app.route('/leave_requests', methods=['POST'])
-def create_leave_request():
-    data = request.json
-    leaverequest = Leaverequest.create(**data)
-    return jsonify(model_to_dict(leaverequest)), 201
+@app.route('/leave_requests/update/<int:id>', methods=['PUT'])
+def update_request(id):
+    row = Leaverequest.get(Leaverequest.request_id == id)
+    row.status = request.json["status"]
+    row.save()
+    return jsonify({'Success': 'Yes'}), 201
 
 
 if __name__ == '__main__':
 
     database.connect(reuse_if_open=True)
 
-    app.run(host='localhost', port='1810')
+    app.run(host='localhost', port=1810)
 
     database.close()
-

@@ -22,6 +22,7 @@ class Employee(BaseModel):
     employee_id = AutoField(column_name='EmployeeID')
     first_name = CharField(column_name='FirstName', null=True)
     last_name = CharField(column_name='LastName', null=True)
+    entry_date = DateField(column_name='Entry_Date', null=True)
 
     class Meta:
         table_name = 'employee'
@@ -42,7 +43,7 @@ class Status(BaseModel):
 
 class Leaverequest(BaseModel):
     begin_date = DateField(column_name='Begin_Date', null=True)
-    employee = ForeignKeyField(column_name='EmployeeID', field='employee_id', model=Employee)
+    employee_id = ForeignKeyField(column_name='EmployeeID', field='employee_id', model=Employee)
     end_date = DateField(column_name='End_Date', null=True)
     request_id = AutoField(column_name='RequestID')
     status = ForeignKeyField(column_name='Status_id', field='status_id', model=Status, null=True)
